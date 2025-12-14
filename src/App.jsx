@@ -3,15 +3,15 @@ import React from 'react';
 function getWeatherIcon(wmoCode) {
   const icons = new Map([
     [[0], '☀️'],
-    [[1], '🌤'],
-    [[2], '⛅️'],
+    [[1], '🌤️'],
+    [[2], '⛅'],
     [[3], '☁️'],
-    [[45, 48], '🌫'],
-    [[51, 56, 61, 66, 80], '🌦'],
-    [[53, 55, 63, 65, 57, 67, 81, 82], '🌧'],
-    [[71, 73, 75, 77, 85, 86], '🌨'],
-    [[95], '🌩'],
-    [[96, 99], '⛈']
+    [[45, 48], '🌫️'],
+    [[51, 56, 61, 66, 80], '🌦️'],
+    [[53, 55, 63, 65, 57, 67, 81, 82], '🌧️'],
+    [[71, 73, 75, 77, 85, 86], '🌨️'],
+    [[95], '🌩️'],
+    [[96, 99], '⛈️']
   ]);
 
   const arr = [...icons.keys()].find(key => key.includes(wmoCode));
@@ -40,7 +40,10 @@ class App extends React.Component {
     this.state = {
       location: 'lisbon',
       isLoading: false,
-      displayLocation: '',
+      displayLocation: {
+        city: '',
+        flag: ''
+      },
       weather: {}
     };
 
@@ -58,7 +61,12 @@ class App extends React.Component {
       if (!geoData.results) throw new Error('Location not found');
 
       const { latitude, longitude, timezone, name, country_code } = geoData.results.at(0);
-      this.setState({ displayLocation: `${name} ${convertToFlag(country_code)}` });
+      this.setState({
+        displayLocation: {
+          city: name,
+          flag: country_code.toLowerCase()
+        }
+      });
 
       // 2) Getting actual weather
       const weatherRes = await fetch(
@@ -89,7 +97,11 @@ class App extends React.Component {
 
         {this.state.isLoading && <p className="loader">Loading...</p>}
         {this.state.weather.weathercode && !this.state.isLoading && (
-          <Weather weather={this.state.weather} displayLocation={this.state.displayLocation} />
+          <Weather
+            weather={this.state.weather}
+            city={this.state.displayLocation.city}
+            flag={this.state.displayLocation.flag}
+          />
         )}
       </div>
     );
@@ -104,10 +116,13 @@ class Weather extends React.Component {
 
     return (
       <div>
-        <h2>Weather for {this.props.displayLocation}</h2>
+        <h2>
+          Weather for {this.props.city}
+          <img src={`https://flagcdn.com/24x18/${this.props.flag}.png`} alt="country flag" />
+        </h2>
         <ul className="weather">
-          {max.map((dayMax, idx) => (
-            <DailyForecast key={codes[idx]} max={dayMax} min={min[idx]} date={dates[idx]} />
+          {dates.map((date, idx) => (
+            <Day key={date} code={codes.at(idx)} max={max.at(idx)} min={min.at(idx)} date={date} isToday={idx === 0} />
           ))}
         </ul>
       </div>
@@ -115,16 +130,18 @@ class Weather extends React.Component {
   }
 }
 
-class DailyForecast extends React.Component {
+class Day extends React.Component {
   render() {
-    const { max, min, date } = this.props;
+    const { max, min, date, code, isToday } = this.props;
 
     return (
-      <div className="day">
-        <p>{max}</p>
-        <p>{min}</p>
-        <p>{date}</p>
-      </div>
+      <li className={`day ${isToday ? 'important' : ''}`}>
+        <span>{getWeatherIcon(code)}</span>
+        <p>{isToday ? 'Today' : formatDay(date)}</p>
+        <p>
+          {Math.floor(min)}&deg; &mdash; {Math.ceil(max)}&deg;
+        </p>
+      </li>
     );
   }
 }
